@@ -1,0 +1,9 @@
+agents:
+  - id: agent1
+    ip: "192.168.1.10"
+    port: 5050
+    ws_port: 9000
+    zeek_log_path: "/var/log/zeek/current/"
+    suricata_log_path: "/var/log/suricata/eve.json"
+api_key: "changeme"
+log_dir: "../logs"
