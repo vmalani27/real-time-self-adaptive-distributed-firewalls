@@ -61,3 +61,7 @@ def dispatch_rule_ws(rule_obj):
         status, resp = dispatch_rule(rule_obj)
         rule_logger.log_rule({'rest_status': status, 'rest_resp': resp, **rule_obj})
         return status, resp 
+
+def terminate_ws_connection(ip):
+    # TODO: Implement actual WebSocket termination logic for agent with given IP
+    print(f"[Dispatcher] Terminating WebSocket connection for {ip}") 

@@ -180,3 +180,23 @@ The central engine now supports robust, structured, and agent-wise CSV log archi
 - Agents send logs as JSON payloads to the central engine (WebSockets preferred, REST fallback).
 - The central engine parses and archives these logs automatically.
 - For testing, use the provided test script to simulate agent log pushes.
+
+## Incident Response Quarantine Logic
+
+When a Suricata or Zeek alert is received via `/api/suricata-alert` or `/api/zeek-alert`, the system will:
+
+1. Parse the alert for `source_ip`, `severity`, and `description`.
+2. If `severity >= 3` or the description matches high-risk keywords (Malware, Beaconing, etc):
+   - Quarantine the agent by blocking its traffic with an nftables rule.
+   - Log the quarantine action with timestamp, IP, and reason.
+   - Terminate any active WebSocket connection for that agent.
+   - Keep the REST connection open for periodic infection checks and log updates only.
+   - Prevent duplicate quarantine rules.
+3. A background scheduler will ping quarantined agents every 3–5 minutes to check infection status (future work for auto-unquarantine).
+4. Other agents remain unaffected and continue normal operation.
+
+### Quarantine Restrictions
+
+- Quarantined agents cannot receive new rules (except explicit allow in future).
+- Only log updates and infection checks are allowed during quarantine.
+- All actions are append-only logged for audit.
