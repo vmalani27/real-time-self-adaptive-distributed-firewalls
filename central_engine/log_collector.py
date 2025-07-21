@@ -28,6 +28,7 @@ def ensure_log_dir():
 def append_log(payload: Dict[str, Any]):
     """
     Accepts a log payload (dict), parses it, and appends to the correct CSV file.
+    Rotates the log if it exceeds 10MB.
     """
     ensure_log_dir()
     agent_id = payload.get('agent_id', 'unknown')
@@ -47,6 +48,13 @@ def append_log(payload: Dict[str, Any]):
         'message': payload.get('message', ''),
     }
     with lock:
+        # Log rotation: if file > 10MB, rotate to .csv.1
+        max_size = 10 * 1024 * 1024  # 10MB
+        if os.path.isfile(filepath) and os.path.getsize(filepath) > max_size:
+            rotated = filepath + '.1'
+            if os.path.exists(rotated):
+                os.remove(rotated)
+            os.rename(filepath, rotated)
         file_exists = os.path.isfile(filepath)
         with open(filepath, 'a', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=LOG_FIELDS)

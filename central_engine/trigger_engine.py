@@ -60,6 +60,15 @@ def is_quarantined(ip):
     with QUARANTINE_LOCK:
         return ip in QUARANTINED_AGENTS and QUARANTINED_AGENTS[ip]["active"]
 
+def is_whitelisted(ip):
+    # Use rule_generator's load_whitelist
+    try:
+        from central_engine.rule_generator import load_whitelist
+        whitelist = load_whitelist()
+        return ip in whitelist
+    except Exception:
+        return False
+
 async def periodic_quarantine_check():
     while True:
         await asyncio.sleep(QUARANTINE_CHECK_INTERVAL)
@@ -86,10 +95,17 @@ async def zeek_alert(request: Request):
     RECENT_ALERT_HASHES.add(h)
     RECENT_ALERT_EXPIRY[h] = time.time()
     src_ip = alert.get('source_ip')
+    if src_ip and is_whitelisted(src_ip):
+        print(f"[trigger_engine] Skipping action for whitelisted IP: {src_ip}")
+        rule_logger.log_rule({'source': 'zeek', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
+        return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
     if src_ip and is_high_risk(alert):
         await quarantine_agent(src_ip, alert.get('description', 'High severity alert'))
         return {'status': 'quarantined', 'resp': f'{src_ip} quarantined'}
     rule_obj = rule_generator.map_alert_to_rule(alert)
+    if not rule_obj.get('rule_str'):
+        rule_logger.log_rule({'source': 'zeek', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
+        return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
     status, resp = dispatcher.dispatch_rule_ws(rule_obj)
     rule_logger.log_rule({'source': 'zeek', 'alert': alert, 'status': status, 'resp': resp})
     return {'status': status, 'resp': resp}
@@ -104,10 +120,17 @@ async def suricata_alert(request: Request):
     RECENT_ALERT_HASHES.add(h)
     RECENT_ALERT_EXPIRY[h] = time.time()
     src_ip = alert.get('source_ip')
+    if src_ip and is_whitelisted(src_ip):
+        print(f"[trigger_engine] Skipping action for whitelisted IP: {src_ip}")
+        rule_logger.log_rule({'source': 'suricata', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
+        return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
     if src_ip and is_high_risk(alert):
         await quarantine_agent(src_ip, alert.get('description', 'High severity alert'))
         return {'status': 'quarantined', 'resp': f'{src_ip} quarantined'}
     rule_obj = rule_generator.map_alert_to_rule(alert)
+    if not rule_obj.get('rule_str'):
+        rule_logger.log_rule({'source': 'suricata', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
+        return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
     status, resp = dispatcher.dispatch_rule_ws(rule_obj)
     rule_logger.log_rule({'source': 'suricata', 'alert': alert, 'status': status, 'resp': resp})
     return {'status': status, 'resp': resp} 

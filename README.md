@@ -53,7 +53,9 @@ tests/
 - Automated nftables rule generation and dispatch
 - RESTful and WebSocket agent communication with API key security
 - Tamper-evident, append-only rule logging
-- Rollback and versioning for firewall rules
+- Automatic log rotation (per-agent, per-tool CSV logs rotate at 10MB)
+- Rollback and versioning for firewall rules (now removes rule from agent, not just marks inactive)
+- Whitelisting of IPs to prevent false positives
 - Zeek and Suricata log watchers for distributed threat detection
 - Rule deduplication and robust alert delivery
 - Unit tests for core logic
@@ -133,26 +135,45 @@ python -m unittest discover tests
 - REST and WebSocket endpoints require API key (configurable)
 - No shell=True; all subprocess calls are sanitized
 - Rule logs are append-only and tamper-evident
+- Log entries are hashed for tamper-evidence (SHA-256)
+- Firewall rules are validated for safety before application
+- Whitelisted IPs are never blocked, even if detected as anomalous
 - TODO: Add token verification and origin checks for WebSocket
 
-## Notes
+## Whitelisting (False Positive Handling)
 
-- Requires Linux for nftables and packet capture.
-- For production, use HTTPS/mTLS and secure API key storage.
-- Extend monitoring/zeek_scripts for custom detection logic.
-- Log watcher modules are started automatically by the agent and do not require separate processes.
+To prevent blocking of trusted or critical IPs, the system supports a simple whitelisting mechanism:
 
-## [2024-06-09] Update: Removal of Scapy from Central Engine
+- Add IP addresses (one per line) to `central_engine/whitelist.conf`.
+- Before generating or dispatching a block rule, the system checks if the source IP is whitelisted.
+- If the IP is whitelisted, rule generation and enforcement are skipped, and a message is logged.
+- Example whitelist.conf:
+  ```
+  # Whitelisted IP addresses
+  192.168.1.100
+  10.0.0.5
+  ```
 
-- The Scapy-based sniffer (`monitoring/scapy_sniffer.py`) has been removed from the project.
-- The central engine no longer uses Scapy for packet capture or analysis.
-- Zeek and Suricata are now the only monitoring and log generation tools, each running independently on every agent.
-- Each agent maintains its own logs in `/var/log/zeek/current/` and `/var/log/suricata/`.
-- The rule generation and dispatch pipeline is unaffected by this change.
-- Communication between agents and the central engine (WebSockets primary, REST fallback) remains unchanged.
-- For agent setup and testing, use the scripts in the new `agent_setup_scripts/` directory.
+## Log Rotation
 
-## Centralized Agent-wise CSV Log Archival (2024-06-09)
+- Log files for each agent/tool (e.g., `agent1_zeek.csv`) are automatically rotated when they exceed 10MB.
+- The old file is renamed to `.csv.1` and a new log file is started.
+- This prevents unbounded log growth and ensures robust, long-term operation.
+
+## Rollback Functionality
+
+- The rollback feature now fully removes the last active rule from the agent by dispatching the corresponding nftables delete command.
+- The rollback action is logged and marked as `rolled_back` in the rule log.
+
+## Helper Functions
+
+- `utils/helpers.py` provides:
+  - `validate_rule(rule)`: Ensures nftables rules are safe and well-formed before application.
+  - `hash_log_entry(entry)`: Returns a SHA-256 hash of a log entry (dict or string) for tamper-evidence.
+- `agent/ack_sender.py`: `send_ack(status)` sends rule application status to the controller.
+- `monitoring/log_shipper.py`: `ship_logs(log_file)` pushes logs to a central server (configurable).
+
+## Centralized Agent-wise CSV Log Archival (2024-06-09, updated 2024-06-10)
 
 The central engine now supports robust, structured, and agent-wise CSV log archival for all incoming logs from agents (Zeek/Suricata). This enables:
 
@@ -160,6 +181,7 @@ The central engine now supports robust, structured, and agent-wise CSV log archi
 - Easy post-analysis, threat correlation, and forensics
 - Preparation for dashboards and ML model training
 - No heavy database overhead
+- Automatic log rotation at 10MB per file
 
 ### Log Structure
 
@@ -200,3 +222,13 @@ When a Suricata or Zeek alert is received via `/api/suricata-alert` or `/api/zee
 - Quarantined agents cannot receive new rules (except explicit allow in future).
 - Only log updates and infection checks are allowed during quarantine.
 - All actions are append-only logged for audit.
+
+## Changelog
+
+### [2024-06-10] Major Robustness and Feature Update
+
+- Implemented automatic log rotation for agent-wise CSV logs (10MB per file).
+- Enhanced rollback: now removes rules from agents, not just marks as inactive.
+- Added whitelisting mechanism (`central_engine/whitelist.conf`) to prevent blocking of trusted IPs.
+- Improved rule validation and log hashing for security and tamper-evidence.
+- Added helper functions for agent acknowledgment and log shipping.
