@@ -2,6 +2,15 @@
 
 echo "📦 Setting up Self-Adaptive Firewall Agent for Testing..."
 
+# Check if we're already in the project directory
+if [ ! -f "./requirements.txt" ] && [ ! -f "./agent/agent.py" ]; then
+  echo "❌ Error: Please run this script from the project root directory."
+  echo "   Expected files: requirements.txt, agent/agent.py"
+  exit 1
+else
+  echo "📁 Project files found in current directory."
+fi
+
 # Install required packages
 sudo apt install -y python3 python3-pip git nftables curl jq net-tools \
     zeek suricata tmux wget build-essential libpcap-dev libnetfilter-queue-dev

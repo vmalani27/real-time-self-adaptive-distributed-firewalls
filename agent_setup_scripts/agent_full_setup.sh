@@ -11,13 +11,16 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 python3-pip git nftables curl jq net-tools \
   zeek suricata tmux wget build-essential libpcap-dev libnetfilter-queue-dev
 
-# Clone or copy project repo
-if [ ! -d "./self_adaptive_fw" ]; then
-  echo "📁 Cloning project repo..."
-  git clone https://github.com/YOUR_USERNAME/self_adaptive_fw.git
+# Clone or copy project repo (only if not already in project directory)
+if [ ! -f "./requirements.txt" ] && [ ! -f "./agent/agent.py" ]; then
+  echo "📁 Project files not found. Cloning project repo..."
+  if [ ! -d "./real-time-self-adaptive-distributed-firewalls" ]; then
+    git clone https://github.com/vmalani27/real-time-self-adaptive-distributed-firewalls.git
+  fi
+  cd real-time-self-adaptive-distributed-firewalls || exit
+else
+  echo "📁 Project files found in current directory."
 fi
-
-cd self_adaptive_fw || exit
 
 # Install Python dependencies
 pip3 install -r requirements.txt
