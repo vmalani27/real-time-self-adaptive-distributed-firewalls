@@ -3,10 +3,14 @@ import json
 from agent import nft_manager
 import requests
 import os
+from utils.helpers import load_env_config, get_config_value
 
 router = APIRouter()
-API_KEY = os.environ.get('API_KEY', 'changeme')
-CONTROLLER_URL = os.environ.get('CONTROLLER_URL', 'http://localhost:8000/ack')
+
+# Load configuration
+config = load_env_config('central_engine/config.yaml')
+API_KEY = get_config_value('API_KEY', 'changeme', config)
+CONTROLLER_URL = get_config_value('CONTROLLER_URL', 'http://localhost:8000/ack', config)
 
 @router.websocket('/ws/rule')
 async def ws_rule(websocket: WebSocket):

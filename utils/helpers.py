@@ -111,6 +111,7 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
     
     # Set defaults for missing values
     defaults = {
+        # Common Configuration
         'API_KEY': 'changeme',
         'CONTROLLER_IP': '127.0.0.1',
         'CONTROLLER_ALERT_PORT': '5051',
@@ -120,6 +121,8 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
         'NETWORK_INTERFACE': 'eth0',
         'DEBUG_MODE': 'false',
         'VERBOSE_LOGGING': 'false',
+        
+        # Central Engine Defaults
         'ENABLE_QUARANTINE': 'true',
         'ALERT_CACHE_TTL': '300',
         'QUARANTINE_CHECK_INTERVAL': '180',
@@ -129,7 +132,37 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
         'ENABLE_ZEEK_INTEGRATION': 'true',
         'ENABLE_SURICATA_INTEGRATION': 'true',
         'MAX_CONCURRENT_DISPATCHES': '10',
-        'BATCH_RULE_SIZE': '50'
+        'BATCH_RULE_SIZE': '50',
+        'WHITELIST_CONFIG_PATH': 'central_engine/whitelist.conf',
+        'RULE_LOG_FILE': '../logs/rules.csv',
+        
+        # Agent Defaults
+        'AGENT_ID': 'agent1',
+        'AGENT_NAME': 'firewall_agent',
+        'AGENT_REST_PORT': '5001',
+        'AGENT_WS_PORT': '9000',
+        'CONTROLLER_URL': 'http://127.0.0.1:8000/ack',
+        'ZEEK_LOG_PATH': '/var/log/zeek/current/',
+        'SURICATA_LOG_PATH': '/var/log/suricata/eve.json',
+        'LOCAL_LOG_DIR': '/var/log/firewall_agent/',
+        'NFT_TABLE_NAME': 'firewall_agent',
+        'NFT_CHAIN_NAME': 'input_filter',
+        'ENABLE_RULE_VALIDATION': 'true',
+        'MAX_RULES_CACHE': '500',
+        'ZEEK_POLL_INTERVAL': '5',
+        'SURICATA_POLL_INTERVAL': '3',
+        'LOG_BATCH_SIZE': '100',
+        'ENABLE_LOG_ROTATION': 'true',
+        'MAX_LOG_SIZE_MB': '10',
+        'MONITOR_INTERFACE': 'eth0',
+        'ENABLE_PACKET_CAPTURE': 'false',
+        'ENABLE_RULE_BACKUP': 'true',
+        'BACKUP_RETENTION_DAYS': '7',
+        'TAMPER_DETECTION': 'true',
+        'MAX_CONCURRENT_RULES': '100',
+        'RULE_APPLICATION_TIMEOUT': '30',
+        'HEARTBEAT_INTERVAL': '60',
+        'TEST_MODE': 'false'
     }
     
     for key, default_value in defaults.items():

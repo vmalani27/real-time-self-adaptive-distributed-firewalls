@@ -5,35 +5,14 @@ import time
 from agent.ws_receiver import router as ws_router
 import threading
 import yaml
+from utils.helpers import load_env_config, get_config_value
 
 app = FastAPI()
 app.include_router(ws_router)
-API_KEY = os.environ.get('API_KEY', 'changeme')
 
-def load_config():
-    config = {}
-    # Load from .env if present
-    if os.path.exists('.env'):
-        with open('.env') as f:
-            for line in f:
-                if line.strip() and not line.startswith('#'):
-                    k, v = line.strip().split('=', 1)
-                    config[k.strip()] = v.strip()
-    # Fallback to config.yaml
-    if not config.get('AGENT_ID') or not config.get('ZEEK_LOG_PATH') or not config.get('SURICATA_LOG_PATH'):
-        if os.path.exists('central_engine/config.yaml'):
-            with open('central_engine/config.yaml') as f:
-                yml = yaml.safe_load(f)
-                agent = yml.get('agents', [{}])[0]
-                if not config.get('AGENT_ID') and agent.get('id'):
-                    config['AGENT_ID'] = agent['id']
-                if not config.get('ZEEK_LOG_PATH') and agent.get('zeek_log_path'):
-                    config['ZEEK_LOG_PATH'] = agent['zeek_log_path']
-                if not config.get('SURICATA_LOG_PATH') and agent.get('suricata_log_path'):
-                    config['SURICATA_LOG_PATH'] = agent['suricata_log_path']
-    return config
-
-config = load_config()
+# Load configuration from environment variables with fallbacks
+config = load_env_config('central_engine/config.yaml')
+API_KEY = get_config_value('API_KEY', 'changeme', config)
 
 @app.post('/apply-rule')
 async def apply_rule(request: Request, x_api_key: str = Header(None)):
