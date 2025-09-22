@@ -3,10 +3,11 @@ import yaml
 import central_engine.dispatcher as dispatcher
 import central_engine.rule_logger as rule_logger
 from central_engine.trigger_engine import is_quarantined
+from utils.helpers import load_env_config, get_config_value
 
-with open('central_engine/config.yaml') as f:
-    config = yaml.safe_load(f)
-API_KEY = config.get('api_key', 'changeme')
+# Load configuration from environment variables
+config = load_env_config('central_engine/config.yaml')
+API_KEY = get_config_value('API_KEY', 'changeme', config)
 
 app = FastAPI()
 

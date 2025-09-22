@@ -5,13 +5,20 @@ import json
 import websockets
 import asyncio
 from central_engine import rule_logger
+from utils.helpers import load_env_config, get_config_value
+
+# Load configuration once at module level
+config = load_env_config('central_engine/config.yaml')
 
 def dispatch_rule(rule_dict):
-    with open('central_engine/config.yaml') as f:
-        config = yaml.safe_load(f)
-    agent_url = f"http://{config['agent_ip']}:{config['agent_port']}/apply-rule"
-    api_key = config.get('api_key', '')
+    # Get agent configuration from env variables
+    agent_ip = get_config_value('AGENT_1_IP', '127.0.0.1', config)
+    agent_port = get_config_value('AGENT_1_PORT', '5001', config)
+    api_key = get_config_value('API_KEY', 'changeme', config)
+    
+    agent_url = f"http://{agent_ip}:{agent_port}/apply-rule"
     headers = {'x-api-key': api_key, 'Content-Type': 'application/json'}
+    
     for attempt in range(2):
         try:
             resp = requests.post(agent_url, json=rule_dict, headers=headers, timeout=5)
@@ -26,12 +33,12 @@ def send_rule_to_agent(agent_ip, rule):
     pass
 
 def dispatch_rule_ws(rule_obj):
-    with open('central_engine/config.yaml') as f:
-        config = yaml.safe_load(f)
-    agent = config['agents'][0]
-    agent_ip = agent['ip']
-    agent_ws_port = agent['ws_port']
+    # Get agent configuration from env variables
+    agent_ip = get_config_value('AGENT_1_IP', '127.0.0.1', config)
+    agent_ws_port = get_config_value('AGENT_1_WS_PORT', '9000', config)
+    
     ws_url = f"ws://{agent_ip}:{agent_ws_port}/ws/rule"
+    
     async def send_ws():
         try:
             async with websockets.connect(ws_url, ping_interval=None) as ws:

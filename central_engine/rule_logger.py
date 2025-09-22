@@ -2,8 +2,11 @@ import json
 import time
 import os
 from central_engine import dispatcher
+from utils.helpers import load_env_config, get_config_value
 
-LOG_FILE = 'central_engine/rule_log.jsonl'
+# Load configuration
+config = load_env_config('central_engine/config.yaml')
+LOG_FILE = get_config_value('RULE_LOG_FILE', 'central_engine/rule_log.jsonl', config)
 
 def log_rule(rule_dict):
     entry = dict(rule_dict)

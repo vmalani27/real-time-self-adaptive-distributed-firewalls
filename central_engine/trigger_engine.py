@@ -7,12 +7,16 @@ import threading
 import asyncio
 from utils.constants import QUARANTINE_RULE_TEMPLATE, HIGH_RISK_KEYWORDS, QUARANTINE_CHECK_INTERVAL
 from central_engine.dispatcher import terminate_ws_connection
+from utils.helpers import load_env_config, get_config_value
+
+# Load configuration from environment variables
+config = load_env_config('central_engine/config.yaml')
 
 app = FastAPI()
 
 RECENT_ALERT_HASHES = set()
 RECENT_ALERT_EXPIRY = {}
-ALERT_CACHE_TTL = 300  # seconds
+ALERT_CACHE_TTL = get_config_value('ALERT_CACHE_TTL', 300, config)
 
 # Quarantine state: {ip: {"timestamp": ..., "reason": ..., "active": True}}
 QUARANTINED_AGENTS = {}
@@ -70,8 +74,9 @@ def is_whitelisted(ip):
         return False
 
 async def periodic_quarantine_check():
+    quarantine_interval = get_config_value('QUARANTINE_CHECK_INTERVAL', 180, config)
     while True:
-        await asyncio.sleep(QUARANTINE_CHECK_INTERVAL)
+        await asyncio.sleep(quarantine_interval)
         with QUARANTINE_LOCK:
             quarantined = [ip for ip, v in QUARANTINED_AGENTS.items() if v["active"]]
         for ip in quarantined:

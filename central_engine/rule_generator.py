@@ -1,8 +1,11 @@
 import time
 import re
 from utils.constants import DEFAULT_RULE_FORMAT
-from utils.helpers import validate_rule
+from utils.helpers import validate_rule, load_env_config, get_config_value
 import os
+
+# Load configuration
+config = load_env_config('central_engine/config.yaml')
 
 def is_valid_ip(ip):
     pattern = r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
@@ -14,7 +17,7 @@ def is_valid_port(port):
     return isinstance(port, int) and 1 <= port <= 65535
 
 def load_whitelist():
-    whitelist_path = os.path.join(os.path.dirname(__file__), 'whitelist.conf')
+    whitelist_path = get_config_value('WHITELIST_CONFIG_PATH', 'central_engine/whitelist.conf', config)
     if not os.path.exists(whitelist_path):
         return set()
     with open(whitelist_path, 'r') as f:
