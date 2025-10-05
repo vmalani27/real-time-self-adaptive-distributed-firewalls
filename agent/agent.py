@@ -28,11 +28,11 @@ async def apply_rule(request: Request, x_api_key: str = Header(None)):
 
 # Start log watcher threads
 try:
-    from agent.log_watchers.zeek_listener import start_zeek_listener
+    # from agent.log_watchers.zeek_listener import start_zeek_listener  # Zeek watcher disabled
     from agent.log_watchers.suricata_alerts import start_suricata_alerts
-    zeek_thread = threading.Thread(target=start_zeek_listener, args=(config,), daemon=True)
+    # zeek_thread = threading.Thread(target=start_zeek_listener, args=(config,), daemon=True)  # Zeek watcher disabled
     suricata_thread = threading.Thread(target=start_suricata_alerts, args=(config,), daemon=True)
-    zeek_thread.start()
+    # zeek_thread.start()  # Zeek watcher disabled
     suricata_thread.start()
 except ImportError:
     print('Log watcher modules not found. Skipping log monitoring.')

@@ -9,7 +9,7 @@ sudo apt update && sudo apt upgrade -y
 
 # Install required packages
 sudo apt install -y python3 python3-pip git nftables curl jq net-tools \
-  zeek suricata tmux wget build-essential libpcap-dev libnetfilter-queue-dev
+  suricata tmux wget build-essential libpcap-dev libnetfilter-queue-dev
 
 # Clone or copy project repo (only if not already in project directory)
 if [ ! -f "./requirements.txt" ] && [ ! -f "./agent/agent.py" ]; then
@@ -36,11 +36,9 @@ deactivate
 # Set up .env (use test.env as base)
 cp test.env .env
 
-# Configure Zeek and Suricata logs
-mkdir -p /var/log/zeek/current/
+# Configure Suricata logs
 mkdir -p /var/log/suricata/
 
-touch /var/log/zeek/current/conn.log
 touch /var/log/suricata/eve.json
 
 # Enable nftables
@@ -81,4 +79,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable safw-agent
 sudo systemctl start safw-agent
 
-echo "✅ Agent setup complete and running on port 5001" 
+echo "✅ Agent setup complete and running on port 5001"

@@ -1,4 +1,3 @@
-tests/
 # self_adaptive_fw
 
 A modular, Python-based self-adaptive distributed firewall controller for real-time network anomaly detection and automated rule enforcement across distributed endpoints.
@@ -6,8 +5,8 @@ A modular, Python-based self-adaptive distributed firewall controller for real-t
 ## Architecture
 
 - **Central Engine**: Detects anomalies, generates nftables rules, dispatches to agents via REST, and logs all actions.
-- **Agent**: Receives rules via REST, applies them using nft, and sends acknowledgments via REST. Also runs background log watchers for Zeek and Suricata alerts.
-- **Monitoring**: Uses Zeek/Scapy to detect attacks (e.g., SYN flood) and triggers rule generation.
+- **Agent**: Receives rules via REST, applies them using nft, and sends acknowledgments via REST. Also runs background log watchers for Suricata alerts.
+- **Monitoring**: Uses Scapy to detect attacks (e.g., SYN flood) and triggers rule generation.
 - **API Server**: FastAPI-based REST interface for rule push and agent ACKs.
 - **Utils/Tests**: Common helpers, constants, and unit tests.
 
@@ -20,7 +19,7 @@ central_engine/
   rule_generator.py # Rule string generation
   dispatcher.py     # Rule dispatch to agents (REST only)
   rule_logger.py    # Rule logging and rollback
-  trigger_engine.py # Receives Zeek/Suricata alerts, triggers rules
+  trigger_engine.py # Receives Suricata alerts, triggers rules
   config.yaml       # Configuration (agent IPs, API keys, etc.)
 
 api_server/
@@ -29,33 +28,35 @@ api_server/
 agent/
   agent.py          # FastAPI server for rule application (REST only)
   nft_manager.py    # Applies nft rules securely
+  # ws_receiver.py   # WebSocket endpoint for rule push (deprecated)
   log_watchers/
-    zeek_listener.py    # Watches Zeek logs for threats
+    # zeek_listener.py    # Watches Zeek logs for threats (deprecated)
     suricata_alerts.py  # Watches Suricata eve.json for alerts
 
 monitoring/
   scapy_sniffer.py  # Scapy-based anomaly detection
-  zeek_scripts/     # Zeek detection scripts
+  zeek_scripts/     # Zeek detection scripts (deprecated)
 
 utils/
   helpers.py        # Common helpers
   constants.py      # Static data
 
-
+tests/
   test_trie.py      # Trie unit tests
   test_rule_gen.py  # Rule generation tests
 ```
+
 ## Features
 
 - Real-time anomaly detection (SYN flood, port scan, etc.)
 - Trie-based efficient pattern/rule matching
 - Automated nftables rule generation and dispatch
--- RESTful agent communication with API key security
+- RESTful agent communication with API key security
 - Tamper-evident, append-only rule logging
 - Automatic log rotation (per-agent, per-tool CSV logs rotate at 10MB)
 - Rollback and versioning for firewall rules (now removes rule from agent, not just marks inactive)
 - Whitelisting of IPs to prevent false positives
-- Zeek and Suricata log watchers for distributed threat detection
+- Suricata log watcher for distributed threat detection
 - Rule deduplication and robust alert delivery
 - Unit tests for core logic
 
@@ -63,10 +64,8 @@ utils/
 
 | Endpoint                     | Module                        | Purpose                                              |
 | ---------------------------- | ----------------------------- | ---------------------------------------------------- |
-| `/api/zeek-alert` (POST)     | central_engine/trigger_engine | Receives Zeek-based threat alerts from agents        |
 | `/api/suricata-alert` (POST) | central_engine/trigger_engine | Receives Suricata-based threat alerts from agents    |
-| `/apply-rule` (POST)         | agent/agent.py                | Agent applies nftables rule (REST fallback)          |
-| `/apply-rule` (POST)         | agent/agent.py                | Agent applies nftables rule (REST only)             |
+| `/apply-rule` (POST)         | agent/agent.py                | Agent applies nftables rule (REST only)              |
 | `/ack` (POST)                | api_server/app.py             | Controller receives rule application acknowledgments |
 
 ## Testbed Setup Procedure
@@ -81,14 +80,14 @@ pip install -r requirements.txt
 
 ### 2. Configure the System
 
-- Edit `central_engine/config.yaml` with agent IP, REST port, Zeek/Suricata log paths, and API key.
+- Edit `central_engine/config.yaml` with agent IP, REST port, Suricata log paths, and API key.
 - Set environment variables for agent/controller using `.env` (see `test.env` for example):
 
 ```
 API_KEY=changeme
 CONTROLLER_URL=http://127.0.0.1:8000/ack
 AGENT_ID=agent1
-ZEEK_LOG_PATH=/var/log/zeek/current/
+# ZEEK_LOG_PATH=/var/log/zeek/current/  # Deprecated
 SURICATA_LOG_PATH=/var/log/suricata/eve.json
 CONTROLLER_IP=127.0.0.1
 CONTROLLER_ALERT_PORT=5051
@@ -108,11 +107,10 @@ uvicorn agent.agent:app --host 0.0.0.0 --port 5001
 # Or use the provided systemd service (see agent/daemon.service)
 ```
 
-- The agent will automatically start background threads to watch Zeek and Suricata logs and send alerts to the controller.
+- The agent will automatically start background threads to watch Suricata logs and send alerts to the controller.
 
 ### 5. Deploy Monitoring Tools
 
-- **Zeek**: Configure Zeek to write logs to the path specified in `.env`/`config.yaml` (e.g., `/var/log/zeek/current/`).
 - **Suricata**: Ensure Suricata writes `eve.json` to the path specified in `.env`/`config.yaml` (e.g., `/var/log/suricata/eve.json`).
 - **Scapy**: Optionally run `monitoring/scapy_sniffer.py` for additional anomaly detection.
 
@@ -124,20 +122,19 @@ python -m unittest discover tests
 
 ## How the System Connects
 
-- **Agent → Controller**: When Zeek or Suricata detects a threat, the agent's log watcher sends a POST to the controller's `/api/zeek-alert` or `/api/suricata-alert` endpoint.
+- **Agent → Controller**: When Suricata detects a threat, the agent's log watcher sends a POST to the controller's `/api/suricata-alert` endpoint.
 - **Controller → Agent**: When a rule needs to be applied, the controller pushes it to the agent via REST (`/apply-rule`).
 - **Agent → Controller**: After applying a rule, the agent sends an acknowledgment to the controller's `/ack` endpoint.
 
 ## Security
 
 - All rule and API inputs are validated (IP, port, etc.)
-- REST and WebSocket endpoints require API key (configurable)
+- REST endpoints require API key (configurable)
 - No shell=True; all subprocess calls are sanitized
 - Rule logs are append-only and tamper-evident
 - Log entries are hashed for tamper-evidence (SHA-256)
 - Firewall rules are validated for safety before application
 - Whitelisted IPs are never blocked, even if detected as anomalous
-- TODO: Add token verification and origin checks for WebSocket
 
 ## Whitelisting (False Positive Handling)
 
@@ -155,7 +152,7 @@ To prevent blocking of trusted or critical IPs, the system supports a simple whi
 
 ## Log Rotation
 
-- Log files for each agent/tool (e.g., `agent1_zeek.csv`) are automatically rotated when they exceed 10MB.
+- Log files for each agent/tool (e.g., `agent1_suricata.csv`) are automatically rotated when they exceed 10MB.
 - The old file is renamed to `.csv.1` and a new log file is started.
 - This prevents unbounded log growth and ensures robust, long-term operation.
 
@@ -172,9 +169,9 @@ To prevent blocking of trusted or critical IPs, the system supports a simple whi
 - `agent/ack_sender.py`: `send_ack(status)` sends rule application status to the controller.
 - `monitoring/log_shipper.py`: `ship_logs(log_file)` pushes logs to a central server (configurable).
 
-## Centralized Agent-wise CSV Log Archival (2024-06-09, updated 2024-06-10)
+## Centralized Agent-wise CSV Log Archival
 
-The central engine now supports robust, structured, and agent-wise CSV log archival for all incoming logs from agents (Zeek/Suricata). This enables:
+The central engine now supports robust, structured, and agent-wise CSV log archival for all incoming logs from agents (Suricata). This enables:
 
 - Clean segregation of logs by agent and tool
 - Easy post-analysis, threat correlation, and forensics
@@ -185,7 +182,7 @@ The central engine now supports robust, structured, and agent-wise CSV log archi
 ### Log Structure
 
 - **Location:** All logs are stored in the `logs/` directory at the project root (configurable via `central_engine/config.yaml` as `log_dir`).
-- **Format:** One CSV file per agent per tool (e.g., `agent1_zeek.csv`, `agent2_suricata.csv`).
+- **Format:** One CSV file per agent per tool (e.g., `agent1_suricata.csv`).
 - **Fields:**
   - `timestamp, agent_id, tool, src_ip, src_port, dest_ip, dest_port, protocol, alert_type, severity, message`
 - **Concurrency:** File locks are used to ensure safe concurrent writes.
@@ -204,13 +201,13 @@ The central engine now supports robust, structured, and agent-wise CSV log archi
 
 ## Incident Response Quarantine Logic
 
-When a Suricata or Zeek alert is received via `/api/suricata-alert` or `/api/zeek-alert`, the system will:
+When a Suricata alert is received via `/api/suricata-alert`, the system will:
 
 1. Parse the alert for `source_ip`, `severity`, and `description`.
 2. If `severity >= 3` or the description matches high-risk keywords (Malware, Beaconing, etc):
    - Quarantine the agent by blocking its traffic with an nftables rule.
    - Log the quarantine action with timestamp, IP, and reason.
-  - Keep the REST connection open for periodic infection checks and log updates only.
+   - Keep the REST connection open for periodic infection checks and log updates only.
    - Prevent duplicate quarantine rules.
 3. A background scheduler will ping quarantined agents every 3–5 minutes to check infection status (future work for auto-unquarantine).
 4. Other agents remain unaffected and continue normal operation.
