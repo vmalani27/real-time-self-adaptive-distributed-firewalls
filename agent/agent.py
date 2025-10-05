@@ -4,15 +4,14 @@ from agent import nft_manager
 import time
 ## from agent.ws_receiver import router as ws_router
 import threading
-import yaml
-from utils.helpers import load_env_config, get_config_value
+from dotenv import load_dotenv
 
 app = FastAPI()
 ## app.include_router(ws_router)
 
-# Load configuration from environment variables with fallbacks
-config = load_env_config('central_engine/config.yaml')
-API_KEY = get_config_value('API_KEY', 'changeme', config)
+load_dotenv('agent.env')
+API_KEY = os.getenv('API_KEY', 'changeme')
+AGENT_REST_PORT = int(os.getenv('AGENT_REST_PORT', '5001'))
 
 @app.post('/apply-rule')
 async def apply_rule(request: Request, x_api_key: str = Header(None)):
@@ -39,4 +38,4 @@ except ImportError:
     print('Log watcher modules not found. Skipping log monitoring.')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001) 
+    app.run(host='0.0.0.0', port=AGENT_REST_PORT)

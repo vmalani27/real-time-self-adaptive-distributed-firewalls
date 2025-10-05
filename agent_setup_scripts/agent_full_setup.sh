@@ -66,7 +66,7 @@ ExecStart=$VENV_UVICORN agent.agent:app --host 192.168.56.11 --port 5001
 WorkingDirectory=$PROJECT_DIR
 Restart=always
 RestartSec=5
-EnvironmentFile=$PROJECT_DIR/.env
+EnvironmentFile=$PROJECT_DIR/central.env
 User=kali
 Group=kali
 Environment=PATH=$PROJECT_DIR/venv/bin:/usr/local/bin:/usr/bin:/bin
