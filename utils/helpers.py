@@ -116,7 +116,7 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
         'CONTROLLER_IP': '127.0.0.1',
         'CONTROLLER_ALERT_PORT': '5051',
         'API_SERVER_PORT': '8000',
-        'WS_PORT': '9001',
+        'WS_PORT': '9000',
         'LOG_DIR': '../logs',
         'NETWORK_INTERFACE': 'eth0',
         'DEBUG_MODE': 'false',

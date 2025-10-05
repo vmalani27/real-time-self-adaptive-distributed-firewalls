@@ -2,13 +2,13 @@ from fastapi import FastAPI, Request, Header, HTTPException
 import os
 from agent import nft_manager
 import time
-from agent.ws_receiver import router as ws_router
+## from agent.ws_receiver import router as ws_router
 import threading
 import yaml
 from utils.helpers import load_env_config, get_config_value
 
 app = FastAPI()
-app.include_router(ws_router)
+## app.include_router(ws_router)
 
 # Load configuration from environment variables with fallbacks
 config = load_env_config('central_engine/config.yaml')

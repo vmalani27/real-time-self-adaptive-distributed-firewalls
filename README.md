@@ -1,11 +1,12 @@
+tests/
 # self_adaptive_fw
 
 A modular, Python-based self-adaptive distributed firewall controller for real-time network anomaly detection and automated rule enforcement across distributed endpoints.
 
 ## Architecture
 
-- **Central Engine**: Detects anomalies, generates nftables rules, dispatches to agents (via REST or WebSocket), and logs all actions.
-- **Agent**: Receives rules via REST or WebSocket, applies them using nft, and sends acknowledgments via REST. Also runs background log watchers for Zeek and Suricata alerts.
+- **Central Engine**: Detects anomalies, generates nftables rules, dispatches to agents via REST, and logs all actions.
+- **Agent**: Receives rules via REST, applies them using nft, and sends acknowledgments via REST. Also runs background log watchers for Zeek and Suricata alerts.
 - **Monitoring**: Uses Zeek/Scapy to detect attacks (e.g., SYN flood) and triggers rule generation.
 - **API Server**: FastAPI-based REST interface for rule push and agent ACKs.
 - **Utils/Tests**: Common helpers, constants, and unit tests.
@@ -17,7 +18,7 @@ central_engine/
   main.py           # Main coordinator
   trie_engine.py    # Trie for IP/pattern matching
   rule_generator.py # Rule string generation
-  dispatcher.py     # Rule dispatch to agents (REST & WebSocket)
+  dispatcher.py     # Rule dispatch to agents (REST only)
   rule_logger.py    # Rule logging and rollback
   trigger_engine.py # Receives Zeek/Suricata alerts, triggers rules
   config.yaml       # Configuration (agent IPs, API keys, etc.)
@@ -26,9 +27,8 @@ api_server/
   app.py            # FastAPI server for rule push/ack
 
 agent/
-  agent.py          # FastAPI server for rule application (REST & WebSocket)
+  agent.py          # FastAPI server for rule application (REST only)
   nft_manager.py    # Applies nft rules securely
-  ws_receiver.py    # WebSocket endpoint for rule push
   log_watchers/
     zeek_listener.py    # Watches Zeek logs for threats
     suricata_alerts.py  # Watches Suricata eve.json for alerts
@@ -41,17 +41,16 @@ utils/
   helpers.py        # Common helpers
   constants.py      # Static data
 
-tests/
+
   test_trie.py      # Trie unit tests
   test_rule_gen.py  # Rule generation tests
 ```
-
 ## Features
 
 - Real-time anomaly detection (SYN flood, port scan, etc.)
 - Trie-based efficient pattern/rule matching
 - Automated nftables rule generation and dispatch
-- RESTful and WebSocket agent communication with API key security
+-- RESTful agent communication with API key security
 - Tamper-evident, append-only rule logging
 - Automatic log rotation (per-agent, per-tool CSV logs rotate at 10MB)
 - Rollback and versioning for firewall rules (now removes rule from agent, not just marks inactive)
@@ -67,7 +66,7 @@ tests/
 | `/api/zeek-alert` (POST)     | central_engine/trigger_engine | Receives Zeek-based threat alerts from agents        |
 | `/api/suricata-alert` (POST) | central_engine/trigger_engine | Receives Suricata-based threat alerts from agents    |
 | `/apply-rule` (POST)         | agent/agent.py                | Agent applies nftables rule (REST fallback)          |
-| `/ws/rule` (WebSocket)       | agent/ws_receiver.py          | Agent receives rules via WebSocket (preferred)       |
+| `/apply-rule` (POST)         | agent/agent.py                | Agent applies nftables rule (REST only)             |
 | `/ack` (POST)                | api_server/app.py             | Controller receives rule application acknowledgments |
 
 ## Testbed Setup Procedure
@@ -76,13 +75,13 @@ tests/
 
 ```bash
 pip install -r requirements.txt
-# For agent: pip install fastapi uvicorn websockets pyyaml requests
+# For agent: pip install fastapi uvicorn pyyaml requests
 # For monitoring: pip install scapy
 ```
 
 ### 2. Configure the System
 
-- Edit `central_engine/config.yaml` with agent IP, REST port, WebSocket port, Zeek/Suricata log paths, and API key.
+- Edit `central_engine/config.yaml` with agent IP, REST port, Zeek/Suricata log paths, and API key.
 - Set environment variables for agent/controller using `.env` (see `test.env` for example):
 
 ```
@@ -126,7 +125,7 @@ python -m unittest discover tests
 ## How the System Connects
 
 - **Agent → Controller**: When Zeek or Suricata detects a threat, the agent's log watcher sends a POST to the controller's `/api/zeek-alert` or `/api/suricata-alert` endpoint.
-- **Controller → Agent**: When a rule needs to be applied, the controller pushes it to the agent via WebSocket (`/ws/rule`). If that fails, it falls back to REST (`/apply-rule`).
+- **Controller → Agent**: When a rule needs to be applied, the controller pushes it to the agent via REST (`/apply-rule`).
 - **Agent → Controller**: After applying a rule, the agent sends an acknowledgment to the controller's `/ack` endpoint.
 
 ## Security
@@ -194,12 +193,12 @@ The central engine now supports robust, structured, and agent-wise CSV log archi
 
 ### Module
 
-- The `central_engine/log_collector.py` module handles incoming log payloads (JSON) over WebSockets or REST, parses them, and appends them to the appropriate CSV file.
+- The `central_engine/log_collector.py` module handles incoming log payloads (JSON) over REST, parses them, and appends them to the appropriate CSV file.
 - No disruption to the real-time rule generation and dispatch pipeline.
 
 ### Usage
 
-- Agents send logs as JSON payloads to the central engine (WebSockets preferred, REST fallback).
+- Agents send logs as JSON payloads to the central engine via REST.
 - The central engine parses and archives these logs automatically.
 - For testing, use the provided test script to simulate agent log pushes.
 
@@ -211,8 +210,7 @@ When a Suricata or Zeek alert is received via `/api/suricata-alert` or `/api/zee
 2. If `severity >= 3` or the description matches high-risk keywords (Malware, Beaconing, etc):
    - Quarantine the agent by blocking its traffic with an nftables rule.
    - Log the quarantine action with timestamp, IP, and reason.
-   - Terminate any active WebSocket connection for that agent.
-   - Keep the REST connection open for periodic infection checks and log updates only.
+  - Keep the REST connection open for periodic infection checks and log updates only.
    - Prevent duplicate quarantine rules.
 3. A background scheduler will ping quarantined agents every 3–5 minutes to check infection status (future work for auto-unquarantine).
 4. Other agents remain unaffected and continue normal operation.

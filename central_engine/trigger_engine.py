@@ -6,7 +6,7 @@ import time
 import threading
 import asyncio
 from utils.constants import QUARANTINE_RULE_TEMPLATE, HIGH_RISK_KEYWORDS, QUARANTINE_CHECK_INTERVAL
-from central_engine.dispatcher import terminate_ws_connection
+## from central_engine.dispatcher import terminate_ws_connection
 from utils.helpers import load_env_config, get_config_value
 
 # Load configuration from environment variables
@@ -43,10 +43,10 @@ async def quarantine_agent(ip, reason):
     rule = QUARANTINE_RULE_TEMPLATE.format(ip=ip)
     # Securely execute nft command (dispatch to agent)
     rule_obj = {"rule_str": rule, "metadata": {"source_ip": ip, "reason": reason, "timestamp": int(time.time()), "quarantine": True}}
-    status, resp = dispatcher.dispatch_rule_ws(rule_obj)
+    status, resp = dispatcher.dispatch_rule(rule_obj)
     rule_logger.log_rule({"source": "quarantine", "alert": {"source_ip": ip, "reason": reason}, "status": status, "resp": resp, "quarantine": True})
     # Terminate WebSocket connection for this agent
-    terminate_ws_connection(ip)
+    ## terminate_ws_connection(ip)
     print(f"[Quarantine] {ip} quarantined for: {reason}")
     return True
 
@@ -111,7 +111,7 @@ async def zeek_alert(request: Request):
     if not rule_obj.get('rule_str'):
         rule_logger.log_rule({'source': 'zeek', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
         return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
-    status, resp = dispatcher.dispatch_rule_ws(rule_obj)
+    status, resp = dispatcher.dispatch_rule(rule_obj)
     rule_logger.log_rule({'source': 'zeek', 'alert': alert, 'status': status, 'resp': resp})
     return {'status': status, 'resp': resp}
 
@@ -136,6 +136,6 @@ async def suricata_alert(request: Request):
     if not rule_obj.get('rule_str'):
         rule_logger.log_rule({'source': 'suricata', 'alert': alert, 'skipped': True, 'reason': 'whitelisted'})
         return {'status': 'skipped', 'resp': f'{src_ip} is whitelisted'}
-    status, resp = dispatcher.dispatch_rule_ws(rule_obj)
+    status, resp = dispatcher.dispatch_rule(rule_obj)
     rule_logger.log_rule({'source': 'suricata', 'alert': alert, 'status': status, 'resp': resp})
     return {'status': status, 'resp': resp} 
