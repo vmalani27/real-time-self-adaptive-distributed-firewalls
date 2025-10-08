@@ -10,7 +10,7 @@ from utils.constants import QUARANTINE_RULE_TEMPLATE, HIGH_RISK_KEYWORDS, QUARAN
 from utils.helpers import load_env_config, get_config_value
 
 # Load configuration from environment variables
-config = load_env_config('central_engine/config.yaml')
+config = load_env_config()
 
 app = FastAPI()
 

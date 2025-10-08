@@ -3,7 +3,7 @@ import requests
 from utils.helpers import load_env_config, get_config_value
 
 # Load configuration once at module level
-config = load_env_config('central_engine/config.yaml')
+config = load_env_config()
 
 def send_ack(status):
     """Sends status back to controller after rule is applied."""

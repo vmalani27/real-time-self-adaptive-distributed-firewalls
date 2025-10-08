@@ -5,7 +5,7 @@ from central_engine import dispatcher
 from utils.helpers import load_env_config, get_config_value
 
 # Load configuration
-config = load_env_config('central_engine/config.yaml')
+config = load_env_config()
 LOG_FILE = get_config_value('RULE_LOG_FILE', 'central_engine/rule_log.jsonl', config)
 
 def log_rule(rule_dict):

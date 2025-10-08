@@ -62,10 +62,8 @@ def append_log(payload: Dict[str, Any]):
                 writer.writeheader()
             writer.writerow(row)
 
-def handle_ws_log(payload: Dict[str, Any]):
-    """Entry point for WebSocket log submissions."""
-    append_log(payload)
-
 def handle_rest_log(payload: Dict[str, Any]):
     """Entry point for REST log submissions."""
-    append_log(payload) 
+    append_log(payload)
+
+## WebSocket log submissions are deprecated; REST is the supported ingestion method.

@@ -2,7 +2,6 @@ import re
 import hashlib
 import json
 import os
-import yaml
 from typing import Dict, Any
 
 def validate_rule(rule):
@@ -68,46 +67,7 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
     for key, value in os.environ.items():
         config[key] = value
     
-    # Finally, load from config.yaml as fallback (only for missing keys)
-    if config_file_path and os.path.exists(config_file_path):
-        try:
-            with open(config_file_path, 'r') as f:
-                yaml_config = yaml.safe_load(f) or {}
-                
-            # Map yaml config to env-style keys
-            if 'api_key' in yaml_config and 'API_KEY' not in config:
-                config['API_KEY'] = yaml_config['api_key']
-            
-            if 'log_dir' in yaml_config and 'LOG_DIR' not in config:
-                config['LOG_DIR'] = yaml_config['log_dir']
-                
-            if 'controller_ip' in yaml_config and 'CONTROLLER_IP' not in config:
-                config['CONTROLLER_IP'] = yaml_config['controller_ip']
-                
-            if 'controller_port' in yaml_config and 'CONTROLLER_ALERT_PORT' not in config:
-                config['CONTROLLER_ALERT_PORT'] = str(yaml_config['controller_port'])
-                
-            if 'api_server_port' in yaml_config and 'API_SERVER_PORT' not in config:
-                config['API_SERVER_PORT'] = str(yaml_config['api_server_port'])
-                
-            if 'ws_port' in yaml_config and 'WS_PORT' not in config:
-                config['WS_PORT'] = str(yaml_config['ws_port'])
-            
-            # Handle agents array
-            if 'agents' in yaml_config and yaml_config['agents']:
-                for i, agent in enumerate(yaml_config['agents']):
-                    if f'AGENT_{i+1}_IP' not in config and 'ip' in agent:
-                        config[f'AGENT_{i+1}_IP'] = agent['ip']
-                    if f'AGENT_{i+1}_ID' not in config and 'id' in agent:
-                        config[f'AGENT_{i+1}_ID'] = agent['id']
-                    if f'AGENT_{i+1}_PORT' not in config and 'port' in agent:
-                        config[f'AGENT_{i+1}_PORT'] = str(agent['port'])
-                    if f'AGENT_{i+1}_WS_PORT' not in config and 'ws_port' in agent:
-                        config[f'AGENT_{i+1}_WS_PORT'] = str(agent['ws_port'])
-                        
-            print(f"[Config] Loaded fallback config from: {config_file_path}")
-        except Exception as e:
-            print(f"[Config] Error reading {config_file_path}: {e}")
+    # YAML/config.yaml fallback support removed - configuration is read from .env files and environment variables only.
     
     # Set defaults for missing values
     defaults = {
@@ -116,7 +76,7 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
         'CONTROLLER_IP': '127.0.0.1',
         'CONTROLLER_ALERT_PORT': '5051',
         'API_SERVER_PORT': '8000',
-        'WS_PORT': '9000',
+    # WebSocket support removed; no WS_PORT default
         'LOG_DIR': '../logs',
         'NETWORK_INTERFACE': 'eth0',
         'DEBUG_MODE': 'false',
@@ -140,16 +100,16 @@ def load_env_config(config_file_path: str = None) -> Dict[str, Any]:
         'AGENT_ID': 'agent1',
         'AGENT_NAME': 'firewall_agent',
         'AGENT_REST_PORT': '5001',
-        'AGENT_WS_PORT': '9000',
+    # Agent WebSocket port deprecated
         'CONTROLLER_URL': 'http://127.0.0.1:8000/ack',
-        'ZEEK_LOG_PATH': '/var/log/zeek/current/',
+    # Zeek integration deprecated
         'SURICATA_LOG_PATH': '/var/log/suricata/eve.json',
         'LOCAL_LOG_DIR': '/var/log/firewall_agent/',
         'NFT_TABLE_NAME': 'firewall_agent',
         'NFT_CHAIN_NAME': 'input_filter',
         'ENABLE_RULE_VALIDATION': 'true',
         'MAX_RULES_CACHE': '500',
-        'ZEEK_POLL_INTERVAL': '5',
+    # Zeek integration deprecated
         'SURICATA_POLL_INTERVAL': '3',
         'LOG_BATCH_SIZE': '100',
         'ENABLE_LOG_ROTATION': 'true',

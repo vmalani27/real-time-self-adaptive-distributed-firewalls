@@ -1,12 +1,11 @@
 from fastapi import FastAPI, Request, Header, HTTPException
-import yaml
 import central_engine.dispatcher as dispatcher
 import central_engine.rule_logger as rule_logger
 from central_engine.trigger_engine import is_quarantined
 from utils.helpers import load_env_config, get_config_value
 
 # Load configuration from environment variables
-config = load_env_config('central_engine/config.yaml')
+config = load_env_config()
 API_KEY = get_config_value('API_KEY', 'changeme', config)
 
 app = FastAPI()

@@ -4,14 +4,15 @@ from agent import nft_manager
 import time
 ## from agent.ws_receiver import router as ws_router
 import threading
-from dotenv import load_dotenv
+from utils.helpers import load_env_config, get_config_value
 
 app = FastAPI()
 ## app.include_router(ws_router)
 
-load_dotenv('agent.env')
-API_KEY = os.getenv('API_KEY', 'changeme')
-AGENT_REST_PORT = int(os.getenv('AGENT_REST_PORT', '5001'))
+# Load config from .env / environment
+config = load_env_config()
+API_KEY = get_config_value('API_KEY', 'changeme', config)
+AGENT_REST_PORT = int(get_config_value('AGENT_REST_PORT', '5001', config))
 
 @app.post('/apply-rule')
 async def apply_rule(request: Request, x_api_key: str = Header(None)):

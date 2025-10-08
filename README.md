@@ -28,7 +28,7 @@ api_server/
 agent/
   agent.py          # FastAPI server for rule application (REST only)
   nft_manager.py    # Applies nft rules securely
-  # ws_receiver.py   # WebSocket endpoint for rule push (deprecated)
+  # (WebSocket endpoint previously supported; now deprecated)
   log_watchers/
     # zeek_listener.py    # Watches Zeek logs for threats (deprecated)
     suricata_alerts.py  # Watches Suricata eve.json for alerts

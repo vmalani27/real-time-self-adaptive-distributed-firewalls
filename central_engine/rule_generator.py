@@ -5,7 +5,7 @@ from utils.helpers import validate_rule, load_env_config, get_config_value
 import os
 
 # Load configuration
-config = load_env_config('central_engine/config.yaml')
+config = load_env_config()
 
 def is_valid_ip(ip):
     pattern = r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$"
