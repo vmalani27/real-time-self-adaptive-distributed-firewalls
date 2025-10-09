@@ -92,7 +92,12 @@ def start_quarantine_scheduler():
 
 @app.post('/api/zeek-alert')
 async def zeek_alert(request: Request):
-    alert = await request.json()
+    try:
+        alert = await request.json()
+    except json.JSONDecodeError as e:
+        # Return a clear 400 to callers when payload is not valid JSON
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f'Invalid JSON payload: {e.msg}')
     cleanup_alert_cache()
     h = alert_hash(alert)
     if h in RECENT_ALERT_HASHES:
@@ -117,7 +122,11 @@ async def zeek_alert(request: Request):
 
 @app.post('/api/suricata-alert')
 async def suricata_alert(request: Request):
-    alert = await request.json()
+    try:
+        alert = await request.json()
+    except json.JSONDecodeError as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=f'Invalid JSON payload: {e.msg}')
     cleanup_alert_cache()
     h = alert_hash(alert)
     if h in RECENT_ALERT_HASHES:
